@@ -1,30 +1,70 @@
 import os
+from functools import wraps
 
-from flask import Flask
+from flask import Flask, flash, redirect, render_template, request, url_for
+
+from flask_login import (
+    LoginManager,
+    UserMixin,
+    current_user,
+    login_required,
+    login_user,
+    logout_user
+)
+
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import get_connection
 
 app = Flask(__name__)
-app.secret_key=os.getenv("SECRET_KEY", "dev")
+app.secret_key = os.getenv("SECRET_KEY", "dev")
+
+login_manager = LoginManager(app)
+login_manager.login_view = "login" # type: ignore
+login_manager.login_message = "Faça login para acessar o sistema."
+login_manager.login_message_category = "warning"
 
 
-@app.route("/")
-def inicio():
-    return "Sistema de estoque funcionando."
+# --------- Usuário (Para o Flask-Login) --------- #
 
-@app.route("/testar-banco")
-def testar_banco():
-    # pagina temp de teste do db
+class Usuario(UserMixin):
+    def __init__(self, id, nome, usuario, senha_hash, perfil, ativo):
+        self.id = id
+        self.nome = nome
+        self.usuario = usuario
+        self.senha_hash = senha_hash
+        self.perfil = perfil
+        self.ativo = ativo
+
+    @property
+    def is_active(self): # type: ignore[override]
+        return bool(self.ativo)
+
+    @property
+    def is_authenticated(self): # type: ignore[override]
+        return bool(self.ativo)
+
+    @property
+    def is_admin(self):
+        return self.perfil == "admin"
+
+
+def buscar_usuario_por_id(usuario_id):
+    conn = get_connection()
     try:
-        conn = get_connection()
         with conn.cursor() as cursor:
-            cursor.execute("SELECT 1 AS ok")
-            resultado = cursor.fetchone()
+            cursor.execute(
+                "SELECT id, nome, usario, senha_hash, perfil, ativo "
+                "FROM usuarios WHERE id = %s",
+                (usuario_id)
+            
+            )
+            return cursor.fetchone()
+    finally:
         conn.close()
-        return f"Conexão com o MySQL OK: {resultado}"
-    except Exception as error:
-        return f"Erro na conexão: {error}", 500
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5001)
-    # host 0.0.0.0 pra acessar por outro device na mesma rede, port 5001 por causa do mac
+
+@login_manager.user_loader
+def carregar_usuario(usuario_id):
+    linha = buscar_usuario_por_id(usuario_id)
+    return Usuario(**linha) if linha else None

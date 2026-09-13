@@ -22,7 +22,7 @@ def criar_admin():
     try:    
         with conn.cursor() as cursor:
             cursor.execute(
-                "INSERT INTO usuario (nome, usuario, senha_hash, perfil) ",
+                "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) "
                 "VALUES (%s, %s, %s, 'admin')",
                 (nome, usuario, senha_hash)
             )
@@ -31,5 +31,5 @@ def criar_admin():
     finally:
         conn.close()
 
-if __name__ == "__admin__":
+if __name__ == "__main__":
     criar_admin()
