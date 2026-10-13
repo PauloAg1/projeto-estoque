@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash
 from db import get_connection
 
 def criar_admin():
-    print("===Criação do ADMIN")
+    print("===Criação do ADMIN===")
     nome = input("Nome completo: ")
     usuario = input("Nome de usuário para login: ")
     senha = getpass.getpass("Senha: ")

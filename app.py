@@ -68,3 +68,138 @@ def buscar_usuario_por_id(usuario_id):
 def carregar_usuario(usuario_id):
     linha = buscar_usuario_por_id(usuario_id)
     return Usuario(**linha) if linha else None
+
+
+def admin_obrigatorio(funcao):
+    @wraps(funcao)
+    def wrapper(*args, **kwargs):
+        if not current_user.is_admin:
+            flash("Apenas administradores podem acessar essa página.", "danger")
+            return redirect(url_for("inicio"))
+        return(funcao(*args, **kwargs))
+
+    return wrapper
+
+
+# --------- Rotas --------- #
+
+@app.route("/")
+@login_required
+def inicio():
+    return render_template("inicio.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("inicio"))
+
+    if request.method == "POST":
+        nome_login = request.form.get("usuario", "").strip()
+        senha = request.form.get("senha", "")
+
+        conn = get_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, nome, usuario, senha_hash, perfil, ativo "
+                    "FROM usuarios WHERE usuario = %s",
+                    (nome_login,),
+                )
+                linha = cursor.fetchone()
+        finally:
+            conn.close()
+
+
+        if linha is None or not check_password_hash(linha["senha_hash"], senha):
+            flash("Usuário ou senha inválidos.", "danger")
+        elif not linha["ativo"]:
+            flash("Este usuário está desativado.", "danger")
+        else:
+            login_user(Usuario(**linha))
+            flash(f"Bem-vindo(a), {linha['nome']}!", "success")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    logout_user()
+    flash("Sessão encerrada.", "success")
+    return redirect(url_for("login"))
+
+
+@app.route("/usuarios")
+@login_required
+@admin_obrigatorio
+def listar_usuarios():
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, nome, usuario, perfil, ativo FROM usuarios ORDER BY nome"
+            )
+            usuarios = cursor.fetchall()
+    finally:
+        conn.close()
+    return render_template("usuarios.html", usuarios = usuarios)
+
+
+@app.route("/usuarios/novo", methods=["GET", "POST"])
+@login_required
+@admin_obrigatorio
+def novo_usuario():
+    valores = {"nome": "", "usuario": "", "perfil": "funcionario"}
+
+    if request.method == "POST":
+        valores["nome"] = request.form.get("nome", "").strip()
+        valores["usuario"] = request.form.get("usuario", "").strip()
+        valores["perfil"] = request.form.get("perfil", "funcionario")
+        senha = request.form.get("senha", "")
+
+        erros = []
+        if not valores["nome"]:
+            erros.append("Informe o nome completo.")
+        if not valores["usuario"]:
+            erros.append("Informe o nome de usuario para login.")
+        if len(senha) < 6:
+            erros.append("A senha deve ter pelo menos 6 caracteres.")
+        if valores["perfil"] not in ["admin", "funcionario"]:
+            erros.append("Perfil inválido.")
+
+        if not erros:
+            conn = get_connection()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT id FROM usuarios WHERE usuario = %s",
+                        (valores["usuario"],)
+                    )
+                    if cursor.fetchone():
+                        erros.append("Ja existe um usuário com esse login.")
+                    else:
+                        cursor.execute(
+                            "INSERT INTO usuarios (nome, usuario, senha_hash, perfil) "
+                            "VALUES (%s, %s, %s, %s)",
+                            (
+                                valores["nome"],
+                                valores["usuario"],
+                                generate_password_hash(senha),
+                                valores["perfil"]
+                            ),
+                        )
+                conn.commit()
+            finally:
+                conn.close()
+
+        if erros:
+            for erro in erros:
+                flash(erro, "danger")
+            return render_template("usuario_form.html", modo_edicao=False, valores = valores)
+
+        flash(f"Usuário {valores['nome']} criado com sucesso.", "success")
+        return redirect(url_for("listar_usuarios"))
+
+    return render_template("usuario_form.html", modo_edicao=False, valores = valores)
+
