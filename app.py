@@ -203,3 +203,104 @@ def novo_usuario():
 
     return render_template("usuario_form.html", modo_edicao=False, valores = valores)
 
+
+@app.route("/usuarios/<int:usuario_id>/editar", methods=["GET", "POST"])
+@login_required
+@admin_obrigatorio
+def editar_usuario(usuario_id):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT id, nome, usuario, perfil FROM usuarios WHERE id = %s",
+                (usuario_id, )
+            )
+            usuario_edicao = cursor.fetchone()
+    finally:
+        conn.close()
+
+    if usuario_edicao is None:
+        flash("Usuário não encontrado.", "danger")
+        return redirect(url_for("listar_usuarios"))
+
+    valores = {
+        "nome": usuario_edicao["nome"],
+        "usuario": usuario_edicao["usuario"],
+        "perfil": usuario_edicao["perfil"],
+    }
+
+    if request.method == "POST":
+        valores["nome"] = request.form.get("nome", "").strip()
+        valores["usuario"] = request.form.get("usuario", "").strip()
+        valores["perfil"] = request.form.get("perfil", "funcionario").strip()
+        nova_senha = request.form.get("senha", "")
+
+        erros = []
+        if not valores["nome"]:
+            erros.append("Informe o nome completo.")
+        if not valores["usuario"]:
+            erros.append("Informe o nome de usuário para login.")
+        if nova_senha and len(nova_senha) < 6:
+            erros.append("A senha deve ter pelo menos 6 caracteres.")
+        if valores["perfil"] not in ["admin", "funcionario"]:
+            erros.append("Perfil inválido.")
+        if usuario_id == current_user.id and valores["perfil"] != "admin":
+            erros.append("Você não pode remover seu próprio cargo de administrador.")
+
+        if not erros:
+            conn = get_connection()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        "SELECT id FROM usuarios WHERE usuario = %s AND id <> %s",
+                        (valores["usuario"], usuario_id)
+                    )
+
+                    if cursor.fetchone():
+                        erros.append("Já existe outro usuario com esse login.")
+                    elif nova_senha:
+                        cursor.execute(
+                            "UPDATE usuarios SET nome = %s, usuario = %s, perfil = %s, "
+                            "senha_hash = %s WHERE id = %s",
+                            (
+                                valores["nome"],
+                                valores["usuario"],
+                                valores["perfil"],
+                                generate_password_hash(nova_senha),
+                                usuario_id,
+                            ),
+                        )
+                    else:
+                        cursor.execute(
+                            "UPDATE usuarios SET nome = %s, usuario = %s, perfil = %s "
+                            "WHERE id = %s",
+                            (
+                                valores["nome"],
+                                valores["usuario"],
+                                valores["perfil"],
+                                usuario_id,
+                            ),
+                        )
+                    conn.commit()
+            finally:
+                conn.close()
+
+        if erros:
+            for erro in erros:
+                flash(erro, "danger")
+            return render_template(
+                "usuario_form.html",
+                modo_edicao = True,
+                usuario_id = usuario_id,
+                valores = valores,
+            )
+
+        flash("Usuário atualizado com sucesso.", "success")
+        return redirect(url_for("listar_usuarios"))
+
+    return render_template(
+        "usuario_form.html",
+        modo_edicao = True,
+        usuario_id = usuario_id,
+        valores = valores,
+    )
