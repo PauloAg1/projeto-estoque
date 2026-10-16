@@ -304,3 +304,38 @@ def editar_usuario(usuario_id):
         usuario_id = usuario_id,
         valores = valores,
     )
+
+
+@app.route("/usuarios/<int:usuario_id>/alternar", methods=["POST"])
+@login_required
+@admin_obrigatorio
+def alternar_usuario(usuario_id):
+    if usuario_id == current_user.id:
+        flash("Você não pode desativar seu próprio usuário.", "danger")
+        return redirect(url_for("listar_usuarios"))
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT ativo FROM usuarios WHERE id = %s", (usuario_id,))
+            linha = cursor.fetchone()
+            if linha is None:
+                flash("Usuário não encontrado.", "danger")
+                return redirect(url_for("listar_usuarios"))
+
+            novo_status = 0 if linha["ativo"] else 0
+            cursor.execute(
+                "UPDATE usuario SET ativo = %s WHERE id = %s", (novo_status, usuario_id))
+
+            conn.commit()
+    finally:
+        conn.close()
+
+    acao = "reativado" if novo_status == 1 else "desativado"
+    flash(f"Usuário {acao} com sucesso.", "success")
+    return redirect(url_for("listar_usuarios"))
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5001)
