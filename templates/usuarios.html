@@ -1,0 +1,37 @@
+{% extends "base.html"%}
+{% set nav = 'usuarios' %}
+{% block titulo %}Usuários - Gestão de Estoque{% endblock %}
+
+{% block conteudo %}
+<a class="btn-app btn-azul mb-4" href="{{ url_for('novo_usuario') }}"><i class="bi bi-person-plus-fill"></i>
+ Novo Usuário
+</a>
+
+{% for u in usuarios %}
+<div class="card-produto">
+    <div class="titulo">{{ u.nome }}</div>
+    <div class="linha">
+        <span>Login: {{ u.usuario }}</span>
+        <span>{{ 'Administrador' if u.perfil == 'admin' else 'Funcionário' }}</span>
+    </div>
+    <div class="linha align-items-center">
+        <span class="fw-bold {{ 'text-success' if u.ativo else 'text.danger' }}">{{ 'Ativo'if u.ativo
+              else 'Desativado' }}</span>
+        <span class="d-flex gap-1">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('editar_usuario', usuario_id=u.id )}}">Editar</a>
+            {% if current_user.id != u.id %}
+            <form method="post" action="{{ url_for('alternar_usuario', usuario_id=u.id) }}">
+                {% if u.ativo %}
+                <button class="btn btn-sm btn-outline-danger" type="submit">Desativar</button>
+                {% else %}
+                <button class="btn btn-sm btn-outline-success" type="submit">Reativar</button>
+                {% endif %}
+            </form>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% else %}
+<p class="text-center text-muted">Nenhum usuário cadastrado.</p>
+{% endfor %}
+{% endblock %}

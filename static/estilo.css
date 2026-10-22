@@ -1,5 +1,5 @@
 :root {
-    --verde-topo: #52DF5F;
+    --verde-topo: #23A936;
     --verde: #23A936;
     --vermelho: #B1493D;
     --azul-topo: #4DA6FF;
@@ -30,7 +30,7 @@ body { background: #d9d9d9; }
 /* botoes do app */
 .btn-app { display: flex; align-items: center; justify-content: center; gap: .75rem; width: 100%; 
            color: #fff; border: 0; border-radius: 6px; padding: .9rem; font-weight: 600;
-           font-size: 1.05rem; text-decoration: none; }
+           font-size: 1.25rem; text-decoration: none; }
 .btn-app:hover { color: #fff; opacity: .92; }
 .btn-verde { background: var(--verde); }
 .btn-vermelho { background: var(--vermelho); }
