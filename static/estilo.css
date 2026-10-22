@@ -1,0 +1,76 @@
+:root {
+    --verde-topo: #52DF5F;
+    --verde: #23A936;
+    --vermelho: #B1493D;
+    --azul-topo: #4DA6FF;
+    --azul: #2196F3;
+}
+
+body { background: #d9d9d9; }
+.app { max-width: 480px; min-height: 100vh; margin: 0 auto; background: #fff; padding-bottom: 100px;}
+
+/* Cabecalhos */
+.topo { color: #fff; padding: 1.1rem 1rem; display: flex; align-items: center; justify-content: space-between;
+        font-size: 1.6rem; font-weight: 700; }
+.topo a { color: #fff; text-decoration: none; }
+.topo-verde { background: var(--verde-topo); }
+.topo-azul { background: var(--azul-topo); }
+.topo-vermelho { background: var(--vermelho); }
+.topo-login { flex-direction: column; text-align: center; padding: 2rem 1rem; gap: .5rem; }
+.topo-login i { font-size: 3rem; }
+
+.conteudo { padding: 1.25rem;}
+
+/* busca */
+.busca { position: relative; margin-bottom: 1.25rem; }
+.busca i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #555;}
+.busca input { width: 100%; background: #f2f2f2; border: 1px solid #888; border-radius: 6px;
+               padding: .6rem .75rem .6rem 2.4rem; text-align: center; }
+
+/* botoes do app */
+.btn-app { display: flex; align-items: center; justify-content: center; gap: .75rem; width: 100%; 
+           color: #fff; border: 0; border-radius: 6px; padding: .9rem; font-weight: 600;
+           font-size: 1.05rem; text-decoration: none; }
+.btn-app:hover { color: #fff; opacity: .92; }
+.btn-verde { background: var(--verde); }
+.btn-vermelho { background: var(--vermelho); }
+.btn-azul { background: var(--azul); }
+.btn-grande { font-size: 1.5rem; padding: .7rem; }
+.acoes { display: flex; gap: 1rem; margin-top: 1.5rem; }
+
+.icone-grande { font-size: 5rem; text-align: center; display: block; margin: .5rem 0 1.5rem; }
+.cor-verde { color: var(--verde); }
+.cor-azul { color: var(--azul-topo); }
+
+/* cartao de produto */
+.card-produto { display: block; border: 1px solid #888; border-radius: 8px; background: #f5f5f5;
+                margin-bottom: 1rem; overflow: hidden; color: #000; text-decoration: none; }
+.card-produto .titulo { text-align: center; font-size: 1.1rem; padding: .6rem .5rem .3rem; }
+.card-produto .linha { display: flex; justify-content: space-between; font-size: .75rem; 
+                       padding: .25rem .75rem; }
+.card-produto .linha + .linha { border-top: 1px solid #555; }
+
+/* Painel cinza (forms e teclado) */
+.painel { background: #f2f2f2; border: 1px solid #888; border-radius: 8px; padding: 1rem; }
+.painel label { font-weight: 700; font-size: .8rem; margin-bottom: .25rem; }
+.painel .form-control, .painel .form-select { background: #ddd; border: 1px solid #888; }
+
+/* Teclado numerico */
+.visor-qtd { background: #888; border: 1px solid #888; border-radius: 6px; flex: 1; text-align: center;
+             font-size: 1.4rem; padding: .25rem; }
+.teclado { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin-top: 1rem; }
+.tecla { background: #fff; border: 1px solid #777; border-radius: 6px; font-size: 1.5rem; padding: .5rem; }
+.tecla:active { background: #e5e5e5; }
+.tecla-apagar { background: var(--vermelho); color: #fff; font-size: 1.4rem; }
+
+/* barra inferior */
+.nav-inferior { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px;
+                background: #fff; border-radius: 24px 24px 0 0; box-shadow: 0 -4px 14px rgba(82, 189, 95, .45); 
+                display: flex; justify-content: space-around; padding: .6rem 0 .7rem; z-index: 10; }
+.nav-inferior a { text-align: center; text-decoration: none; color: #333; font-size: .75rem; font-weight: 600; }
+.nav-inferior a i { display: block; font-size: 1.6rem; }
+.nav-inferior a.ativo { color: var(--verde); }
+
+.login-link { font-size: .75rem; text-align: center; margin-top: .75rem; color: #222; }
+
+

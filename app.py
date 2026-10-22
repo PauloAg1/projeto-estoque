@@ -54,7 +54,7 @@ def buscar_usuario_por_id(usuario_id):
     try:
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT id, nome, usario, senha_hash, perfil, ativo "
+                "SELECT id, nome, usuario, senha_hash, perfil, ativo "
                 "FROM usuarios WHERE id = %s",
                 (usuario_id)
             
@@ -118,6 +118,7 @@ def login():
         else:
             login_user(Usuario(**linha))
             flash(f"Bem-vindo(a), {linha['nome']}!", "success")
+            return redirect(url_for("inicio"))
 
     return render_template("login.html")
 
@@ -326,7 +327,7 @@ def alternar_usuario(usuario_id):
 
             novo_status = 0 if linha["ativo"] else 0
             cursor.execute(
-                "UPDATE usuario SET ativo = %s WHERE id = %s", (novo_status, usuario_id))
+                "UPDATE usuarios SET ativo = %s WHERE id = %s", (novo_status, usuario_id))
 
             conn.commit()
     finally:
