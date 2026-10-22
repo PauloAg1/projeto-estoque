@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Entrar-Gestão de Estoque{% endblock %}
+
+{% block header %}
+<header class="topo topo-verde topo-login">
+    <i class="bi bi-box-seam"></i>
+    <span>Gestão de Estoque</span>
+</header>
+{% endblock %}
+
+{% block conteudo %}
+<form method="post" class="px-3 pt-5">
+    <label class="mb-1" for="usuario">Usuário:</label>
+    <div class="input-group mb-4">
+        <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+        <input class="form-control form-control-lg" name="usuario" id="usuario" required autofocus>
+    </div>
+    
+    <label class="mb-1" for="senha">Senha:</label>
+    <div class="input-group mb-4">
+        <span class="input-group-text bg-light"><i class="bi bi-block"></i></span>
+        <input class="form-control form-control-lg" type="password" name="senha" id="senha" required>
+    </div>
+
+    <button class="btn-app btn-verde" type="submit">Entrar<i class="bi bi-box-arrow-in-right"></i></button>
+    <p class="login-link">Esqueceu sua senha?<br>Contate seu gerente.</p>
+</form>
+{% endblock %}

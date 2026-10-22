@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% set cor = 'azul' %}
+{% block titulo %}Cadastrar Produto - Gestão de Estoque{% endblock %}
+{% block voltar %}/produtos{% endblock %} 
+
+{% block conteudo %}
+<i class="bi bi-box-seam icone-grande cor-azul"></i>
+
+<form method="post">
+    <div class="painel">
+        <div class="mb-3">
+            <label for="nome">Nome do produto</label>
+            <input class="form-control" name="nome" id="nome" placeholder="Ex: Pão de Queijo 50g"
+                   value="{{ valores.nome|default('') }}" required>
+        </div>
+        <div class="mb-3">
+            <label for="codigo_barras">Código de barras</label>
+            <input class="form-control" name="codigo_barras" id="codigo_barras" inputmode="numeric"
+                   placeholder="Ex: 123456789012" value="{{ valores.codigo_barras|default('') }}">
+        </div>
+        <div class="row g-3">
+            <div class="col-6">
+                <label for="preco">Preço de venda R$</label>
+                <input class="form-control" name="preco" id="preco" inputmode="decimal"
+                       placeholder="0,00" value="{{ valores.preco|default('') }} required">
+            </div>
+            <div class="col-6">
+                <label for="quantidade">Quantidade Inicial</label>
+                <input class="form-control" name="quantidade" id="quantidade" inputmode="numeric"
+                       placeholder="0" value="{{ valores.quantidade|default('') }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="acoes">
+        <a class="btn-app btn-vermelho btn-grande" href="/produtos">Cancelar</a>
+        <button class="btn-app btn-verde btn-grande" type="submit">Salvar</button>
+    </div>
+</form>
+{% endblock %}

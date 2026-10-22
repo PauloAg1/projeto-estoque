@@ -14,15 +14,15 @@
     {% block header %}
     <header class="topo topo-{{ cor|default('verde') }}">
         <a href="{% block voltar %}{{ url_for('inicio') }}{% endblock %}">
-            <i class="bi bi-arrow-return-left">Voltar</i>
+            <i class="bi bi-arrow-return-left"></i>Voltar
         </a>
-        <a href="{{ url_for('logout') }}" title="Sair"><i class="bi box-arrow-right"></i></a>
+        <a href="{{ url_for('logout') }}" title="Sair"><i class="bi bi-box-arrow-right"></i></a>
     </header>
     {% endblock %}
     <main class="conteudo">
-        {% with mensagens = get_flashed_messages(with_categoires=true) %}
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
             {% for categoria, mensagem in mensagens %}
-                <div class="alert-alert-{{ categoria }} py-2">{{ mensagem }}</div>
+                <div class="alert alert-{{ categoria }} py-2">{{ mensagem }}</div>
             {% endfor %}
         {% endwith %}
         {% block conteudo %}{% endblock %}
@@ -36,7 +36,7 @@
             <i class="bi bi-box-seam"></i>Produtos
         </a>
         {% if current_user.is_admin %}
-        <a href="{{ url_for('listar_usuarios')}}" class="{{ 'ativo' if nav == 'usuarios' }}">\
+        <a href="{{ url_for('listar_usuarios')}}" class="{{ 'ativo' if nav == 'usuarios' }}">
             <i class="bi bi-person"></i>Usuários
         </a>
         {% endif %}

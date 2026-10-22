@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% set nav = "inicio" %}
+{% block titulo %}Início - Gestão de Estoque{% endblock %}
+
+{% block header %}
+<header class="topo topo-verde">
+    <span>Olá. {{ current_user.nome.split()[0] }}!</span>
+    <a href="{{ url_for('logout') }}" title="Sair"><i class="bi bi-box-arrow-right"></i></a>
+</header>
+{% endblock %}
+
+{% block conteudo %}
+<form class="busca" method="get" action="/produtos">
+    <i class="bi bi-search"></i>
+    <input type="search" name="q" placeholder="Buscar Produto">
+</form>
+
+<i class="bi bi-box-seam icone-grande cor-verde"></i>
+
+<div class="d-grid gap-4 px-3">
+    <a class="btn-app btn-verde" href="/entrada"><i class="bi bi-plus-circle-fill"></i>Registrar Entrada</a>
+    <a class="btn-app btn-vermelho" href="/saida"><i class="bi bi-dash-circle-fill"></i>Registrar Saída</a>
+    <a class="btn-app btn-azul" href="/produtos/novo"><i class="bi bi-box-seam"></i>Cadastrar Produto</a>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% set nav = "produtos" %}
+{% block titulo%}Produtos - Gestão de Estoque {% endblock %}
+
+{% block conteudo %}
+<form class="busca" method="get">
+    <i class="bi bi-search"></i>
+    <input type="search" name="q" value="{{ q|default('') }} " placeholder="Buscar Produto">
+</form>
+
+{% for p in produtos %}
+<div class="card-produto">
+    <div class="titulo">{{ p.nome }}</div>
+    <div class="linha">
+        <span>ID: {{ '%05d'|format(p.id) }}</span>
+        <span>Cód: {{ p.codigo_barras or '-' }}</span>
+    </div>
+    <div class="linha">
+        <span>Preço: R$ {{ ('%.2f'|format(p.preco))|replace('.', ',') }}</span>
+    <span>Quantidade: {{ p.quantidade }}</span>
+    </div>
+</div>
+{% else %}
+<p class="text-center text-muted">Nenhum produto encontrado.</p>
+{% endfor %}
+{% endblock %}
