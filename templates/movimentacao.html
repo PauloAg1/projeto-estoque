@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% set cor = "verde" if tipo == 'entrada' else 'vermelho' %}
+{% block titulo %}Registrar {{ 'Entrada' if tipo == 'entrada' else 'Saída' }} - Gestão de Estoque {% endblock %}
+
+{% block conteudo %}
+<form class="busca" method="get">
+    <i class="bi bi-search"></i>
+    <input type="search" name="q" value="{{ q|default('') }}" placeholder="Buscar Produto para alterar">
+</form>
+
+{% if produto %}
+    <div class="card-produto">
+        <div class="titulo">{{ produto.nome }}</div>
+        <div class="linha">
+            <span>ID: {{ '%05d'|format(produto.id) }}</span>
+            <span>Cód: {{ produto.codigo_barras or '-' }}</span>
+        </div>
+        <div class="linha">
+            <span>Preço: {{ ('%.2f'|format(produto.preco))|replace('.', ',') }}</span>
+            <span>Quantidade: {{ produto.quantidade }}</span>
+        </div>
+    </div>
+
+    <form method="post" onsubmit="return validar()">
+        <input type="hidden" name="produto_id" value="{{ produto.id }}">
+        <input type="hidden" name="quantidade" id="qtd" value="0">
+
+        <div class="painel">
+            <div class="text-center mb-2">Quantidade para {{ 'adicionar' if tipo == 'entrada' else 'diminuir' }}</div>
+            <div class="d-flex gap-2    ">
+                <button type="button" class="mini" style="background: var(--vermelho)" onclick="ajustar(-1)">-</button>
+                <div class="visor-qtd" id="visor">0</div>
+                <button type="button" class="mini" style="background: var(--verde)" onclick="ajustar(1)">+</button>
+            </div>
+            <div class="teclado">
+                {% for n in [1,2,3,4,5,6,7,8,9] %}
+                <button type="button" class="tecla" onclick="digito({{ n }})">{{ n }}</button> 
+                {% endfor %}
+                <span></span>
+                <button type="button" class="tecla" onclick="digito(0)">0</button>
+                <button type="button" class="tecla tecla-apagar" onclick="apagar()"><i class=" bi bi-backspace"></i></button>
+            </div>
+        </div>
+
+        <div class="acoes">
+            <a class="btn-app btn-vermelho btn-grande" href="/">Cancelar</a>
+            <button class="btn-app btn-verde btn-grande" type="submit">Salvar</button>
+        </div>
+    </form>
+
+{% elif produtos %}
+    {% for p in produtos %}
+    <a class="card-produto" href="?produto_id={{ p.id }}">
+        <div class="titulo">{{ p.nome }}</div>
+        <div class="linha">
+            <span>ID: {{ '%05d'|format(p.id) }}</span>
+            <span>Cód: {{ p.codigo_barras or '-' }}</span>
+        </div>
+        <div class="linha">
+            <span>Preço: {{ ('%.2f'|format(p.preco))|replace('.', ',') }}</span>
+            <span>Quantidade: {{ p.quantidade }}</span>
+        </div>
+    </a>
+    {% endfor %}
+
+{% else %}
+    <p class="text-center text-muted">Busque um produto por nome, ID ou código de barras.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const campo = document.getElementById('qtd');
+    const visor = document.getElementById('visor');
+    function mostrar() { if (visor) visor.textContent = campo.value; }
+    function digito(d) {
+        if (campo.value.lenght >= 5 && campo.value !== '0') return;
+        campo.value = String(parseInt(campo.value + d, 10));
+        mostrar();
+    }
+    function apagar() {
+        campo.value = campo.value.slice(0, -1) || '0';
+        mostrar();
+    }
+    function ajustar(n) {
+        campo.value = Math.max(0, parseInt(campo.value, 10) + n);
+        mostrar();
+    }
+    function validar() {
+        if (parseInt(campo.value, 10) <= 0) { alert('Informe uma quantidade maior que zero.'); return false; }
+        return true;
+    }
+</script>
+{% endblock %}
