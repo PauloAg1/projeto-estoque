@@ -409,7 +409,7 @@ def novo_produto():
                 with conn.cursor() as cursor:
                     if codigo:
                         cursor.execute(
-                            "SELECT if FROM produtos WHERE codigo_barras = %s",
+                            "SELECT id FROM produtos WHERE codigo_barras = %s",
                             (codigo,),
                         )
                         if cursor.fetchone():
@@ -427,12 +427,124 @@ def novo_produto():
         if erros:
             for erro in erros:
                 flash(erro, "danger")
-            return render_template("produto_form.html", valores=valores)
+            return render_template("produtos_form.html", valores=valores)
 
         flash("Produto cadastrado com sucesso!", "success")
         return redirect(url_for("listar_produtos"))
 
-    return render_template("produto_form.html", valores=valores)
+    return render_template("produtos_form.html", valores=valores)
 
-# if __name__ == "__main__":
-#     app.run(debug=True, host="0.0.0.0", port=5001)
+
+def buscar_produto(cursor, produto_id):
+    cursor.execute(
+        "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " 
+        "FROM produtos WHERE id = %s",
+        (produto_id,),
+    )
+    return cursor.fetchone()
+
+
+def registrar_movimentacao(tipo):
+    
+    # Registrar (POST)
+    if request.method == "POST":
+        produto_id = request.form.get("produto_id", "")
+        qtd_txt = request.form.get("quantidade", "")
+
+        if not produto_id.isdigit() or not qtd_txt.isdigit() or int(qtd_txt) <= 0:
+            flash("Selecione um produto e informe uma quantidade maior que zero.", "danger")
+            return redirect(url_for(tipo))
+
+        produto_id = int(produto_id)
+        quantidade = int(qtd_txt)
+
+        conn = get_connection()
+        try:
+            with conn.cursor() as cursor:
+                produto = buscar_produto(cursor, produto_id)
+                if produto is None:
+                    flash("Produto não encontrado.", "danger")
+                    return redirect(url_for(tipo))
+
+                if tipo == "entrada":
+                    cursor.execute(
+                        "UPDATE produtos SET quantidade = quantidade + %s WHERE id = %s",
+                        (quantidade, produto_id),
+                    )
+                else:
+                    # só desconta se houver quantidade suficiente, evitando quantidade negativa
+                    cursor.execute(
+                        "UPDATE produtos SET quantidade = quantidade - %s "
+                        "WHERE id = %s AND quantidade >= %s",
+                        (quantidade, produto_id, quantidade),
+                    )
+                    if cursor.rowcount == 0:
+                        conn.rollback()
+                        flash(
+                            f"Estoque insuficiente. {produto['nome']} tem apenas {produto["quantidade"]} unidades.",
+                            "danger"
+                        )
+                        return redirect(url_for("saida", produto_id=produto_id))
+                cursor.execute(
+                    "INSERT INTO movimentacoes (produto_id, usuario_id, tipo, quantidade) " 
+                    "VALUES (%s, %s, %s, %s)",
+                    (produto_id, current_user.id, tipo, quantidade),
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            flash("Erro ao registrar a movimentação. Nada foi alterado.", "danger")
+            return redirect(url_for(tipo))
+        finally:
+            conn.close()
+
+        verbo = "Entrada" if tipo == "entrada" else "Saída"
+        flash(f"{verbo} de {quantidade} un de {produto['nome']} registrada.", "success")
+        return redirect(url_for("inicio"))
+
+
+    # Buscar/escolher produto
+    q = request.args.get("q", "").strip()
+    produto_id = request.args.get("produto_id", "")
+    produto = None
+    produtos = []
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            if produto_id.isdigit():
+                produto = buscar_produto(cursor, int(produto_id))
+            elif q:
+                cursor.execute(
+                    "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " 
+                    "FROM produtos "
+                    "WHERE nome LIKE %s OR codigo_barras = %s OR id = %s "
+                    "ORDER BY nome LIMIT 20",
+                    (f"%{q}%", q, int(q) if q.isdigit() else -1),
+                )
+                produtos = cursor.fetchall()
+                if len(produtos) == 1:
+                    produto = produtos[0]
+    finally:
+        conn.close()
+
+    return render_template(
+        "movimentacao.html",
+        tipo=tipo, q=q, produto=produto, produtos=produtos
+    )
+
+
+@app.route("/entrada", methods=["GET", "POST"])
+@login_required
+def entrada():
+    return registrar_movimentacao("entrada")
+
+
+@app.route("/saida", methods=["GET", "POST"])
+@login_required
+def saida():
+    return registrar_movimentacao("saida")
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5001)
