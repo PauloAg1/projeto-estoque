@@ -1,5 +1,6 @@
 import os
 from functools import wraps
+from decimal import Decimal, InvalidOperation
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -56,7 +57,7 @@ def buscar_usuario_por_id(usuario_id):
             cursor.execute(
                 "SELECT id, nome, usuario, senha_hash, perfil, ativo "
                 "FROM usuarios WHERE id = %s",
-                (usuario_id)
+                (usuario_id,)
             
             )
             return cursor.fetchone()
@@ -282,7 +283,7 @@ def editar_usuario(usuario_id):
                                 usuario_id,
                             ),
                         )
-                    conn.commit()
+                        conn.commit()
             finally:
                 conn.close()
 
@@ -325,7 +326,7 @@ def alternar_usuario(usuario_id):
                 flash("Usuário não encontrado.", "danger")
                 return redirect(url_for("listar_usuarios"))
 
-            novo_status = 0 if linha["ativo"] else 0
+            novo_status = 0 if linha["ativo"] else 1
             cursor.execute(
                 "UPDATE usuarios SET ativo = %s WHERE id = %s", (novo_status, usuario_id))
 
@@ -338,5 +339,100 @@ def alternar_usuario(usuario_id):
     return redirect(url_for("listar_usuarios"))
 
 
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5001)
+def converter_preco(texto):
+    texto = texto.strip()
+    if "," in texto:
+        texto = texto.replace(".", "").replace(",", ".")
+    
+    try:
+        valor = Decimal(texto)
+    except InvalidOperation:
+        return None
+    if not valor.is_finite() or valor < 0:
+        return None
+    return valor
+
+
+@app.route("/produtos")
+@login_required
+def listar_produtos():
+    q = request.args.get("q", "").strip()
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            if q:
+                # ID exato, Cod de barras exato, ou nome parcial
+                cursor.execute(
+                    "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " \
+                    "FROM produtos " \
+                    "WHERE nome LIKE %s OR codigo_barras = %s OR id = %s " \
+                    "ORDER BY nome",
+                    (f"%{q}%", q, int(q) if q.isdigit() else -1),
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " \
+                    "FROM produtos ORDER BY nome"
+                )
+            produtos = cursor.fetchall()
+    finally:
+        conn.close()
+    return render_template("produtos.html", produtos=produtos, q=q)
+
+
+@app.route("/produtos/novo", methods=["GET", "POST"])
+@login_required
+def novo_produto():
+    valores = {"nome": "", "codigo_barras": "", "preco": "", "quantidade": ""}
+
+    if request.method == "POST":
+        valores["nome"] = request.form.get("nome", "").strip()
+        valores["codigo_barras"] = request.form.get("codigo_barras", "").strip()
+        valores["preco"] = request.form.get("preco", "").strip()
+        valores["quantidade"] = request.form.get("quantidade", "").strip()
+
+        preco = converter_preco(valores["preco"])
+        qtd_txt = valores["quantidade"] or "0"
+        codigo = valores["codigo_barras"] or None
+
+        erros = []
+        if not valores["nome"]:
+            erros.append("Informe o nome do produto.")
+        if not valores["preco"]:
+            erros.append("Preço inválido. Use o formato 12,50.")
+        if not qtd_txt.isdigit():
+            erros.append("A quantidade inicial deve ser um número inteiro.")
+
+        if not erros:
+            conn = get_connection()
+            try:
+                with conn.cursor() as cursor:
+                    if codigo:
+                        cursor.execute(
+                            "SELECT if FROM produtos WHERE codigo_barras = %s",
+                            (codigo,),
+                        )
+                        if cursor.fetchone():
+                            erros.append("Já existe um produto com esse código de barras.")
+                    if not erros:
+                        cursor.execute(
+                            "INSERT INTO produtos (nome, codigo_barras, preco, quantidade) "
+                            "VALUES (%s, %s, %s, %s)",
+                            (valores["nome"], codigo, preco, int(qtd_txt)),
+                        )
+                        conn.commit()
+            finally:
+                conn.close()
+
+        if erros:
+            for erro in erros:
+                flash(erro, "danger")
+            return render_template("produto_form.html", valores=valores)
+
+        flash("Produto cadastrado com sucesso!", "success")
+        return redirect(url_for("listar_produtos"))
+
+    return render_template("produto_form.html", valores=valores)
+
+# if __name__ == "__main__":
+#     app.run(debug=True, host="0.0.0.0", port=5001)

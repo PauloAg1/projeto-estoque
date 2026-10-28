@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     nome VARCHAR(100) NOT NULL,
     codigo_barras VARCHAR(20) NULL UNIQUE,
     preco DECIMAL(10, 2) NOT NULL DEFAULT 0,
-    quantindade INT NOT NULL DEFAULT 0,
+    quantidade INT NOT NULL DEFAULT 0,
     estoque_minimo INT NOT NULL DEFAULT 0,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_produtos_nome (nome)
