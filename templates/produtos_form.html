@@ -30,6 +30,11 @@
                        placeholder="0" value="{{ valores.quantidade|default('') }}">
             </div>
         </div>
+        <div class="mt-3">
+            <label for="estoque_minimo">Estoque mínimo (alerta)</label>
+            <input class="form-control" name="estoque_minimo" id="estoque_minimo" inputmode="numeric" 
+                   placeholder="0 = sem alerta" value="{{ valores.estoque_minimo|default('') }}">
+        </div>
     </div>
 
     <div class="acoes">

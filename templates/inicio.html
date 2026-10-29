@@ -4,12 +4,20 @@
 
 {% block header %}
 <header class="topo topo-verde">
-    <span>Olá. {{ current_user.nome.split()[0] }}!</span>
+    <span>Olá, {{ current_user.nome.split()[0] }}!</span>
     <a href="{{ url_for('logout') }}" title="Sair"><i class="bi bi-box-arrow-right"></i></a>
 </header>
 {% endblock %}
 
 {% block conteudo %}
+
+{% if em_alerta %}
+<a class="faixa-alerta" href="{{ url_for('listar_produtos', alerta=1) }}">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <span>{{ em_alerta }} produto{{ 's' if em_alerta > 1 }} com estoque baixo</span>
+</a>
+{% endif %}
+
 <form class="busca" method="get" action="/produtos">
     <i class="bi bi-search"></i>
     <input type="search" name="q" placeholder="Buscar Produto">

@@ -1,26 +1,39 @@
 {% extends "base.html" %}
-{% set nav = "produtos" %}
-{% block titulo%}Produtos - Gestão de Estoque {% endblock %}
+{% set nav = 'produtos' %}
+{% block titulo %}Produtos — Gestão de Estoque{% endblock %}
 
 {% block conteudo %}
 <form class="busca" method="get">
     <i class="bi bi-search"></i>
-    <input type="search" name="q" value="{{ q|default('') }} " placeholder="Buscar Produto">
+    <input type="search" name="q" value="{{ q|default('') }}" placeholder="Buscar Produto">
+    {% if alerta %}<input type="hidden" name="alerta" value="1">{% endif %}
 </form>
 
+<div class="d-flex gap-2 mb-3">
+    <a class="btn btn-sm {{ 'btn-outline-secondary' if alerta else 'btn-secondary' }}"
+        href="{{ url_for('listar_produtos', q=q) }}">Todos</a>
+    <a class="btn btn-sm {{ 'btn-danger' if alerta else 'btn-outline-danger' }}"
+        href="{{ url_for('listar_produtos', q=q, alerta=1) }}">
+        <i class="bi bi-exclamation-triangle-fill"></i> Estoque baixo
+    </a>
+</div>
+
 {% for p in produtos %}
-<div class="card-produto">
-    <div class="titulo">{{ p.nome }}</div>
-    <div class="linha">
-        <span>ID: {{ '%05d'|format(p.id) }}</span>
-        <span>Cód: {{ p.codigo_barras or '-' }}</span>
+{% set baixo = p.estoque_minimo > 0 and p.quantidade <= p.estoque_minimo %}
+<div class="card-produto {{ 'alerta' if baixo }}">
+    <div class="titulo">
+        {{ p.nome }}
+        {% if baixo %}<span class="selo-alerta">ESTOQUE BAIXO</span>{% endif %}
     </div>
+    <div class="linha"><span>ID: {{ '%05d'|format(p.id) }}</span><span>Cód: {{ p.codigo_barras or '—' }}</span></div>
     <div class="linha">
         <span>Preço: R$ {{ ('%.2f'|format(p.preco))|replace('.', ',') }}</span>
-    <span>Quantidade: {{ p.quantidade }}</span>
+        <span>Quantidade: {{ p.quantidade }}{% if p.estoque_minimo > 0 %} (mín. {{ p.estoque_minimo }}){% endif %}</span>
     </div>
 </div>
 {% else %}
-<p class="text-center text-muted">Nenhum produto encontrado.</p>
+<p class="text-center text-muted">
+    {{ 'Nenhum produto com estoque baixo.' if alerta else 'Nenhum produto encontrado.' }}
+</p>
 {% endfor %}
 {% endblock %}

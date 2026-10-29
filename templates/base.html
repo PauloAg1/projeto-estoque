@@ -35,6 +35,11 @@
         <a href="/produtos" class="{{ 'ativo' if nav == 'produtos' }}">
             <i class="bi bi-box-seam"></i>Produtos
         </a>
+
+        <a href="{{ url_for('historico') }}" class="{{ 'ativo' if nav == 'historico' }}">
+            <i class="bi bi-clock-history"></i>Histórico
+        </a>
+
         {% if current_user.is_admin %}
         <a href="{{ url_for('listar_usuarios')}}" class="{{ 'ativo' if nav == 'usuarios' }}">
             <i class="bi bi-person"></i>Usuários

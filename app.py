@@ -1,6 +1,7 @@
 import os
 from functools import wraps
 from decimal import Decimal, InvalidOperation
+from datetime import datetime
 
 from flask import Flask, flash, redirect, render_template, request, url_for
 
@@ -87,7 +88,17 @@ def admin_obrigatorio(funcao):
 @app.route("/")
 @login_required
 def inicio():
-    return render_template("inicio.html")
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM produtos "
+                "WHERE estoque_minimo > 0 AND quantidade <= estoque_minimo"
+            )
+            em_alerta = cursor.fetchone()["total"]
+    finally:
+        conn.close()
+    return render_template("inicio.html", em_alerta=em_alerta)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -357,51 +368,54 @@ def converter_preco(texto):
 @login_required
 def listar_produtos():
     q = request.args.get("q", "").strip()
+    alerta = request.args.get("alerta") == "1"
+
+    condicoes, params = [], []
+    if q:
+        condicoes.append("(nome LIKE %s OR codigo_barras = %s OR id = %s)")
+        params += [f"%{q}%", q, int(q) if q.isdigit() else -1]
+    if alerta:
+        condicoes.append("estoque_minimo > 0 AND quantidade <= estoque_minimo")
+
+    sql = ("SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo "
+           "FROM produtos")
+    if condicoes:
+        sql += " WHERE " + " AND ".join(condicoes)
+    sql += " ORDER BY nome"
+
     conn = get_connection()
     try:
         with conn.cursor() as cursor:
-            if q:
-                # ID exato, Cod de barras exato, ou nome parcial
-                cursor.execute(
-                    "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " \
-                    "FROM produtos " \
-                    "WHERE nome LIKE %s OR codigo_barras = %s OR id = %s " \
-                    "ORDER BY nome",
-                    (f"%{q}%", q, int(q) if q.isdigit() else -1),
-                )
-            else:
-                cursor.execute(
-                    "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " \
-                    "FROM produtos ORDER BY nome"
-                )
+            cursor.execute(sql, params)
             produtos = cursor.fetchall()
     finally:
         conn.close()
-    return render_template("produtos.html", produtos=produtos, q=q)
-
+    return render_template("produtos.html", produtos=produtos, q=q, alerta=alerta)
 
 @app.route("/produtos/novo", methods=["GET", "POST"])
 @login_required
 def novo_produto():
-    valores = {"nome": "", "codigo_barras": "", "preco": "", "quantidade": ""}
+    valores = {"nome": "", "codigo_barras": "", "preco": "",
+               "quantidade": "", "estoque_minimo": ""}
 
     if request.method == "POST":
-        valores["nome"] = request.form.get("nome", "").strip()
-        valores["codigo_barras"] = request.form.get("codigo_barras", "").strip()
-        valores["preco"] = request.form.get("preco", "").strip()
-        valores["quantidade"] = request.form.get("quantidade", "").strip()
+        for campo in valores:
+            valores[campo] = request.form.get(campo, "").strip()
 
         preco = converter_preco(valores["preco"])
         qtd_txt = valores["quantidade"] or "0"
+        min_txt = valores["estoque_minimo"] or "0"
         codigo = valores["codigo_barras"] or None
 
         erros = []
         if not valores["nome"]:
             erros.append("Informe o nome do produto.")
-        if not valores["preco"]:
+        if preco is None:
             erros.append("Preço inválido. Use o formato 12,50.")
         if not qtd_txt.isdigit():
             erros.append("A quantidade inicial deve ser um número inteiro.")
+        if not min_txt.isdigit():
+            erros.append("O estoque mínimo deve ser um número inteiro.")
 
         if not erros:
             conn = get_connection()
@@ -409,16 +423,16 @@ def novo_produto():
                 with conn.cursor() as cursor:
                     if codigo:
                         cursor.execute(
-                            "SELECT id FROM produtos WHERE codigo_barras = %s",
-                            (codigo,),
+                            "SELECT id FROM produtos WHERE codigo_barras = %s", (codigo,)
                         )
                         if cursor.fetchone():
                             erros.append("Já existe um produto com esse código de barras.")
                     if not erros:
                         cursor.execute(
-                            "INSERT INTO produtos (nome, codigo_barras, preco, quantidade) "
-                            "VALUES (%s, %s, %s, %s)",
-                            (valores["nome"], codigo, preco, int(qtd_txt)),
+                            "INSERT INTO produtos "
+                            "(nome, codigo_barras, preco, quantidade, estoque_minimo) "
+                            "VALUES (%s, %s, %s, %s, %s)",
+                            (valores["nome"], codigo, preco, int(qtd_txt), int(min_txt)),
                         )
                         conn.commit()
             finally:
@@ -433,7 +447,6 @@ def novo_produto():
         return redirect(url_for("listar_produtos"))
 
     return render_template("produtos_form.html", valores=valores)
-
 
 def buscar_produto(cursor, produto_id):
     cursor.execute(
@@ -500,6 +513,16 @@ def registrar_movimentacao(tipo):
 
         verbo = "Entrada" if tipo == "entrada" else "Saída"
         flash(f"{verbo} de {quantidade} un de {produto['nome']} registrada.", "success")
+
+        if tipo == "saida":
+            saldo = produto["quantidade"] - quantidade
+            minimo = produto["estoque_minimo"]
+            if minimo > 0 and saldo <= minimo:
+                flash(
+                    f"Atenção: {produto['nome']} ficou com {saldo} un. "
+                    f"(mínimo: {minimo}). Hora de repor!",
+                    "warning",
+                )
         return redirect(url_for("inicio"))
 
 
@@ -544,6 +567,60 @@ def entrada():
 @login_required
 def saida():
     return registrar_movimentacao("saida")
+
+# Historico de movimentacoes
+
+def data_valida(texto):
+    try:
+        datetime.strptime(texto, "%Y-%m-%d")
+        return texto
+    except ValueError:
+        return ""
+
+
+@app.route("/historico")
+@login_required
+def historico():
+    tipo = request.args.get("tipo", "")
+    q = request.args.get("q", "").strip()
+    data_ini = data_valida(request.args.get("de", ""))
+    data_fim = data_valida(request.args.get("ate", ""))
+
+    condicoes, params = [], []
+    if tipo in ("entrada", "saida"):
+        condicoes.append("m.tipo = %s")
+        params.append(tipo)
+    if q:
+        condicoes.append("(p.nome LIKE %s OR p.codigo_barras = %s OR p.id = %s)")
+        params += [f"%{q}%", q, int(q) if q.isdigit() else -1]
+    if data_ini:
+        condicoes.append("DATE(m.criado_em) >= %s")
+        params.append(data_ini)
+    if data_fim:
+        condicoes.append("DATE(m.criado_em) <= %s")
+        params.append(data_fim)
+
+    sql = (
+        "SELECT m.id, m.tipo, m.quantidade, m.criado_em, p.nome AS produto, u.nome AS usuario " \
+        "FROM movimentacoes m " \
+        "JOIN produtos p ON p.id = m.produto_id " \
+        "JOIN usuarios u ON u.id = m.usuario_id"
+    )
+    if condicoes:
+        sql += " WHERE " + " AND ".join(condicoes)
+    sql += " ORDER BY m.criado_em DESC, m.id DESC LIMIT 100"
+
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(sql, params)
+            movs = cursor.fetchall()
+    finally:
+        conn.close()
+
+    return render_template(
+        "historico.html", movs=movs, tipo=tipo, q=q, de=data_ini, ate=data_fim
+    )
 
 
 if __name__ == "__main__":

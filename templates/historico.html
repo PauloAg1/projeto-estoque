@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% set nav = 'historico' %}
+{% block titulo %}Histórico - Gestão de Estoque{% endblock %}
+
+{% block conteudo %}
+<h1 class="h5 text-center mb-3">Histórico de movimentações</h1>
+<form class="filtros" method="get">
+    <input class="form-control mb-2" type="search" name="q" value="{{ q }}"
+           placeholder="Produto(nome, ID ou código)">
+    <select class="form-select mb-2" name="tipo">
+        <option value="">Entradas e saídas</option>
+        <option value="entrada" {{ 'selected' if tipo == 'entrada' }}>Só entradas</option>
+        <option value="saida" {{ 'selected' if tipo == 'saida' }}>Só saídas</option>
+    </select>
+    <div class="row g-2 mb-2">
+        <div class="col-6">
+            <label class="small">De</label>
+            <input class="form-control" type="date" name="de" value="{{ de }}">
+        </div>
+        <div class="col-6">
+            <label class="small">Até</label>
+            <input class="form-control" type="date" name="ate" value="{{ ate }}">
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn-app btn-azul" type="submit"><i class="bi bi-funnel"></i>Filtrar</button>
+        <a class="btn-app btn-vermelho" href="{{ url_for('historico')}}">Limpar</a>
+    </div>
+</form>
+
+{% for m in movs %}
+<div class="card-produto m-{{ m.tipo }}">
+    <div class="titulo">{{ m.produto }}</div>
+    <div class="linha">
+        <span class="mov-{{ m.tipo }}">
+            {% if m.tipo == 'entrada' %} Entrada: +{{ m.quantidade }} 
+            {% else %} Saída: -{{ m.quantidade }} {% endif %}
+        </span>
+        <span>{{ m.criado_em.strftime('%d/%m/%Y %H:%M') }}</span>
+    </div>
+    <div class="linha"><span>Por: {{ m.usuario }}</span><span>#{{ m.id }}</span></div>
+</div>
+{% else %}
+<p class="text-center text-muted">Nenhuma movimentação encontrada.</p>
+{% endfor %}
+
+{% if movs|length == 100 %}
+<p class="text-center text-muted small">Mostrando as 100 mais recentes. Use os filtros para refinar.</p>
+{% endif %}
+{% endblock %}

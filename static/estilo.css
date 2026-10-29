@@ -73,4 +73,18 @@ body { background: #d9d9d9; }
 
 .login-link { font-size: .75rem; text-align: center; margin-top: .75rem; color: #222; }
 
+/* Alerta de estoque mínimo */
+.card-produto.alerta { border: 2px solid var(--vermelho); background: #fdf0ee; }
+.selo-alerta { display: inline-block; background: var(--vermelho); color: #fff; font-size: .65rem; font-weight: 700;
+               border-radius: 10px; padding: .1rem .5rem; margin-left: .4rem; vertical-align: middle; }
+.faixa-alerta { display: flex; align-items: center; gap: .75rem; background: #fdf0ee; border: 1px solid var(--vermelho);
+                color: var(--vermelho); border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1.25rem; 
+                text-decoration: None; font-weight: 600; }
+.faixa-alerta i { font-size: 1.5rem; }
 
+/* Histórico de movimentações */
+.mov-entrada { color: var(--verde); font-weight: 700; }
+.mov-saida { color: var(--vermelho); font-weight: 700; }
+.card-produto.m-entrada { border-left: 6px solid var(--verde); }
+.card-produto.m-saida { border-left: 6px solid var(--vermelho); }
+.filtros { background: #f2f2f2; border: 1px solid #888; border-radius: 8px; padding: .75rem; margin-bottom: 1rem; }
