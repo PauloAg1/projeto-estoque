@@ -20,7 +20,7 @@
 
 {% for p in produtos %}
 {% set baixo = p.estoque_minimo > 0 and p.quantidade <= p.estoque_minimo %}
-<div class="card-produto {{ 'alerta' if baixo }}">
+<a class="card-produto {{ 'alerta' if baixo }}" href="{{ url_for('editar_produto', produto_id=p.id) }}" >
     <div class="titulo">
         {{ p.nome }}
         {% if baixo %}<span class="selo-alerta">ESTOQUE BAIXO</span>{% endif %}
@@ -30,7 +30,7 @@
         <span>Preço: R$ {{ ('%.2f'|format(p.preco))|replace('.', ',') }}</span>
         <span>Quantidade: {{ p.quantidade }}{% if p.estoque_minimo > 0 %} (mín. {{ p.estoque_minimo }}){% endif %}</span>
     </div>
-</div>
+</a>
 {% else %}
 <p class="text-center text-muted">
     {{ 'Nenhum produto com estoque baixo.' if alerta else 'Nenhum produto encontrado.' }}

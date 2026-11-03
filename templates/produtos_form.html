@@ -1,45 +1,70 @@
 {% extends "base.html" %}
 {% set cor = 'azul' %}
-{% block titulo %}Cadastrar Produto - Gestão de Estoque{% endblock %}
-{% block voltar %}/produtos{% endblock %} 
+{% block titulo %}{{ 'Editar Produto' if modo_edicao else 'Cadastrar Produto' }} — Gestão de Estoque{% endblock %}
+{% block voltar %}{{ url_for('listar_produtos') }}{% endblock %}
 
 {% block conteudo %}
 <i class="bi bi-box-seam icone-grande cor-azul"></i>
+<h1 class="h5 text-center mb-3">{{ 'Editar Produto' if modo_edicao else 'Cadastrar Produto' }}</h1>
 
-<form method="post">
+<form method="post"
+      action="{{ url_for('editar_produto', produto_id=produto_id) if modo_edicao else url_for('novo_produto') }}">
     <div class="painel">
         <div class="mb-3">
             <label for="nome">Nome do produto</label>
-            <input class="form-control" name="nome" id="nome" placeholder="Ex: Pão de Queijo 50g"
-                   value="{{ valores.nome|default('') }}" required>
+            <input class="form-control" id="nome" name="nome" placeholder="Ex: Pão de Queijo 50g"
+                    value="{{ valores.nome|default('') }}" required>
         </div>
         <div class="mb-3">
             <label for="codigo_barras">Código de barras</label>
-            <input class="form-control" name="codigo_barras" id="codigo_barras" inputmode="numeric"
-                   placeholder="Ex: 123456789012" value="{{ valores.codigo_barras|default('') }}">
+            <input class="form-control" id="codigo_barras" name="codigo_barras" inputmode="numeric"
+                    maxlength="20" placeholder="Ex: 7891234567890" value="{{ valores.codigo_barras|default('') }}">
         </div>
         <div class="row g-3">
             <div class="col-6">
                 <label for="preco">Preço de venda R$</label>
-                <input class="form-control" name="preco" id="preco" inputmode="decimal"
-                       placeholder="0,00" value="{{ valores.preco|default('') }} required">
-            </div>
+                <input class="form-control" id="preco" name="preco" inputmode="decimal" placeholder="0,00"
+                        value="{{ valores.preco|default('') }}" required>
+        </div>
             <div class="col-6">
+                {% if modo_edicao %}
+                <label>Quantidade atual</label>
+                <input class="form-control" value="{{ valores.quantidade }}" disabled>
+                {% else %}
                 <label for="quantidade">Quantidade Inicial</label>
-                <input class="form-control" name="quantidade" id="quantidade" inputmode="numeric"
-                       placeholder="0" value="{{ valores.quantidade|default('') }}">
+                <input class="form-control" id="quantidade" name="quantidade" inputmode="numeric" placeholder="0"
+                    value="{{ valores.quantidade|default('') }}">
+                {% endif %}
             </div>
         </div>
         <div class="mt-3">
             <label for="estoque_minimo">Estoque mínimo (alerta)</label>
-            <input class="form-control" name="estoque_minimo" id="estoque_minimo" inputmode="numeric" 
-                   placeholder="0 = sem alerta" value="{{ valores.estoque_minimo|default('') }}">
+            <input class="form-control" id="estoque_minimo" name="estoque_minimo" inputmode="numeric"
+                    placeholder="0 = sem alerta" value="{{ valores.estoque_minimo|default('') }}">
         </div>
+        {% if modo_edicao %}
+        <p class="small text-muted mt-2 mb-0">A quantidade só muda por Registrar Entrada / Saída.</p>
+        {% endif %}
     </div>
 
     <div class="acoes">
-        <a class="btn-app btn-vermelho btn-grande" href="/produtos">Cancelar</a>
+        <a class="btn-app btn-vermelho btn-grande" href="{{ url_for('listar_produtos') }}">Cancelar</a>
         <button class="btn-app btn-verde btn-grande" type="submit">Salvar</button>
     </div>
 </form>
+
+{% if modo_edicao and current_user.is_admin %}
+    {% if tem_movimentacao %}
+    <p class="text-center text-muted small mt-4">
+        <i class="bi bi-lock-fill"></i> Este produto tem movimentações e não pode ser excluído.
+    </p>
+    {% else %}
+    <form method="post" action="{{ url_for('excluir_produto', produto_id=produto_id) }}"
+          onsubmit="return confirm('Excluir este produto definitivamente?');">
+        <button class="btn btn-outline-danger w-100 mt-4" type="submit">
+            <i class="bi bi-trash"></i> Excluir produto
+        </button>
+    </form>
+    {% endif %}
+{% endif %}
 {% endblock %}

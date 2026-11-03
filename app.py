@@ -448,6 +448,115 @@ def novo_produto():
 
     return render_template("produtos_form.html", valores=valores)
 
+
+@app.route("/produtos/<int:produto_id>/editar", methods=["GET", "POST"])
+@login_required
+def editar_produto(produto_id):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            produto = buscar_produto(cursor, produto_id)
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM movimentacoes WHERE produto_id = %s",
+                (produto_id,),
+            )
+            tem_movimentacao = cursor.fetchone()["total"] > 0
+    finally:
+        conn.close()
+
+    if produto is None:
+        flash("Produto não encontrado", "danger")
+        return redirect(url_for("listar_produtos"))
+
+    valores = {
+        "nome": produto["nome"],
+        "codigo_barras": produto["codigo_barras"] or "",
+        "preco": str(produto["preco"]).replace(",", "."),
+        "quantidade": produto["quantidade"],
+        "estoque_minimo": str(produto["estoque_minimo"]),
+    }
+
+    if request.method == "POST":
+        for campo in ("nome", "codigo_barras", "preco", "estoque_minimo"):
+            valores[campo] = request.form.get(campo, "").strip()
+
+        preco = converter_preco(valores["preco"]) 
+        min_txt = valores["estoque_minimo"] or "0"
+        codigo = valores["codigo_barras"] or None
+
+        erros = []
+        if not valores["nome"]:
+            erros.append("Informe o nome do produto.")
+        if preco is None:
+            erros.append("Preço inválido. Use o formato 12,50.")
+        if not min_txt.isdigit():
+            erros.append("O estoque mínimo deve ser um número inteiro.")
+
+        if not erros:
+            conn = get_connection()
+            try:
+                with conn.cursor() as cursor:
+                    if codigo:
+                        cursor.execute(
+                            "SELECT id FROM produtos WHERE codigo_barras = %s AND id <> %s",
+                            (codigo, produto_id),
+                        )
+                        if cursor.fetchone():
+                            erros.append("Já existe outro produto com esse código de barras.")
+                    if not erros:
+                        cursor.execute(
+                            "UPDATE produtos SET nome = %s, codigo_barras = %s, preco = %s, estoque_minimo = %s " 
+                            "WHERE id = %s",
+                            (valores["nome"], codigo, preco, int(min_txt), produto_id)
+                        )
+                        conn.commit()
+            finally:
+                conn.close()
+
+        if erros:
+            for erro in erros:
+                flash(erro, "danger")
+        else:
+            flash("Produto atualizado com sucesso!", "success")
+            return redirect(url_for("listar_produtos"))
+    return render_template(
+        "produtos_form.html",
+        modo_edicao=True,
+        produto_id=produto_id,
+        valores=valores,
+        tem_movimentacao=tem_movimentacao,
+    )
+
+
+@app.route("/produtos/<int:produto_id>/excluir", methods=["GET", "POST"])
+@login_required
+@admin_obrigatorio
+def excluir_produto(produto_id):
+    conn = get_connection()
+    try:
+        with conn.cursor() as cursor:
+            produto = buscar_produto(cursor, produto_id)
+            if produto is None:
+                flash("Produto não encontrado.", "danger")
+                return redirect(url_for("listar_produtos"))
+
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM movimentacoes WHERE produto_id = %s",
+                (produto_id,),
+            )
+            if cursor.fetchone()["total"] > 0:
+                flash(f"{produto["nome"]} não pode ser excluído porque já tem movimentações registradas.", "danger")
+                return redirect(url_for("editar_produto", produto_id=produto_id))
+
+            cursor.execute("DELETE FROM produtos WHERE id = %s", (produto_id,))
+        conn.commit()
+    finally:
+        conn.close()
+                
+    flash(f"{produto['nome']} excluído com sucesso.", "success")
+    return redirect(url_for("listar_produtos"))
+
+
 def buscar_produto(cursor, produto_id):
     cursor.execute(
         "SELECT id, nome, codigo_barras, preco, quantidade, estoque_minimo " 
@@ -621,6 +730,7 @@ def historico():
     return render_template(
         "historico.html", movs=movs, tipo=tipo, q=q, de=data_ini, ate=data_fim
     )
+
 
 
 if __name__ == "__main__":
