@@ -528,7 +528,7 @@ def editar_produto(produto_id):
     )
 
 
-@app.route("/produtos/<int:produto_id>/excluir", methods=["GET", "POST"])
+@app.route("/produtos/<int:produto_id>/excluir", methods=["POST"])
 @login_required
 @admin_obrigatorio
 def excluir_produto(produto_id):
@@ -545,7 +545,7 @@ def excluir_produto(produto_id):
                 (produto_id,),
             )
             if cursor.fetchone()["total"] > 0:
-                flash(f"{produto["nome"]} não pode ser excluído porque já tem movimentações registradas.", "danger")
+                flash(f"{produto['nome']} não pode ser excluído porque já tem movimentações registradas.", "danger")
                 return redirect(url_for("editar_produto", produto_id=produto_id))
 
             cursor.execute("DELETE FROM produtos WHERE id = %s", (produto_id,))
@@ -603,7 +603,7 @@ def registrar_movimentacao(tipo):
                     if cursor.rowcount == 0:
                         conn.rollback()
                         flash(
-                            f"Estoque insuficiente. {produto['nome']} tem apenas {produto["quantidade"]} unidades.",
+                            f"Estoque insuficiente. {produto['nome']} tem apenas {produto['quantidade']} unidades.",
                             "danger"
                         )
                         return redirect(url_for("saida", produto_id=produto_id))
