@@ -9,6 +9,6 @@ Sistema web de controle de estoque desenvolvido como Atividade Extensionista III
 4. Crie o arquivo '.env' (DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, SECRET_KEY)
 5. Crie o administrador: 'python criar_admin.py'
 6. Rode o sistema: 'python app.py'
-7. Acesse 'http://IP-DO-SERVIDOR:5001'
+7. Acesse 'http://localhost:5001'
 
 
